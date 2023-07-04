@@ -1,0 +1,12 @@
+I give you subtitles to popular video on YouTube with title: {title}
+I need you to emphasize most interesting moments and statements from this subtitles
+Moments and statements must be 1 minute long
+Timestamp must have 1 minute window
+Create titles, hashtags and description for that moments and statements like for tiktok video
+Example:
+Title of moment:
+Hashtags:
+Description:
+Timestamp: 00:00->01:00
+Subtitles of that video:
+{subtitles}
