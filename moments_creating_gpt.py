@@ -86,6 +86,12 @@ class GptProcessor:
         with open(output_file_path, "w", encoding="utf-8") as output_file:
             output_file.write("\n".join(completion_list))
 
+    def process_data_folder(self, data_folder):
+        for folder in tqdm(os.listdir(data_folder)):
+            folder_path = data_folder / folder
+            if os.path.isdir(folder_path):
+                self.process_folder(folder_path)
+
     @staticmethod
     def get_title(metadata: dict):
         title = metadata['title']
@@ -110,8 +116,4 @@ class GptProcessor:
 if __name__ == "__main__":
     data_folder = Path("data")
     processor = GptProcessor(model_name="gpt-3.5-turbo", max_retries=3)
-
-    for folder in tqdm(os.listdir(data_folder)):
-        folder_path = data_folder / folder
-        if os.path.isdir(folder_path):
-            processor.process_folder(folder_path)
+    processor.process_data_folder(data_folder)

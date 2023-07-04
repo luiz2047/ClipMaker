@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 from pathlib import Path
@@ -7,9 +8,10 @@ from moviepy import editor
 
 
 class VideoProcessor:
-    def __init__(self, movie_folder, movie_name):
-        self.movie_folder = movie_folder
-        self.movie_name = movie_name
+    def __init__(self, data_folder):
+        self.data_folder = data_folder
+        self.movie_folder = ""
+        self.movie_name = ""
         self.transcribe_data = []
         self.parsed_data = []
         self.results_dir = None
@@ -95,12 +97,24 @@ class VideoProcessor:
             cvc = editor.CompositeVideoClip([clip, txtclip.set_pos(('center', 0.75), relative=True)])
             return cvc.set_duration(clip.duration)
 
-    def process_video(self):
-        self.results_dir = Path(self.movie_folder, "results")
+    def process_whole_folder(self):
+        data_folder = Path(self.movie_folder)
+        for folder in data_folder.iterdir():
+            if folder.is_dir():
+                try:
+                    self.process_single_movie(folder)
+                except Exception as ex:
+                    print(f"ERROR Troubles with dir: {folder}\n{ex}")
+
+    def process_single_movie(self, folder_path):
+        self.results_dir = folder_path / "results"
         self.results_dir.mkdir(parents=True, exist_ok=True)
 
-        self.load_parsed_data(os.path.join(self.movie_folder, "output.txt"))
-        self.load_transcribe_data(os.path.join(self.movie_folder, "transcribe.json"))
+        self.load_parsed_data(folder_path / "output.txt")
+        self.load_transcribe_data(folder_path / "transcribe.json")
+
+        video_file = self.find_video_file(folder_path)
+        self.movie_name = video_file
 
         i = 1
         for data in self.parsed_data:
@@ -108,20 +122,27 @@ class VideoProcessor:
             subs = self.create_subs_for_moment(data)
             if not subs:
                 continue
-            video = editor.VideoFileClip(os.path.join(self.movie_folder, self.movie_name))
+            video = editor.VideoFileClip(video_file)
             (w, h) = video.size
             cropped_clip = crop(video, width=600, height=5000, x_center=w / 2, y_center=h / 2)
             annotated_clips = [self.annotate(cropped_clip.subclip(from_t, to_t), txt) for (from_t, to_t), txt in subs]
             final_clip = editor.concatenate_videoclips(annotated_clips)
-            final_clip.write_videofile(os.path.join(self.results_dir, str(out_movie_name) + ".mp4"), codec='mpeg4')
-            with open(os.path.join(self.results_dir, str(out_movie_name) + ".txt"), "w", encoding="utf-8") as f:
+            final_clip.write_videofile(self.results_dir / (str(out_movie_name) + ".mp4"), codec='mpeg4')
+            with open(self.results_dir / (str(out_movie_name) + ".txt"), "w", encoding="utf-8") as f:
                 text = "{}{}\n{}".format(data["title"], f"Part {i}", "\n".join(data["hashtags"]))
                 f.write(text)
             i += 1
 
+    @staticmethod
+    def find_video_file(folder_path):
+        video_files = list(glob.glob(f"{folder_path}/*.mp4"))
+        if len(video_files) == 1:
+            return video_files[0]
+        else:
+            raise ValueError("Could not find a valid video file in the folder.")
+
 
 if __name__ == "__main__":
-    movie_folder = "data/4I5Q3UXkGd0/"
-    movie_name = "4I5Q3UXkGd0.mp4"
-    video_processor = VideoProcessor(movie_folder, movie_name)
-    video_processor.process_video()
+    movie_folder = Path("data/9rIy0xY99a0/")
+    video_processor = VideoProcessor(movie_folder)
+    video_processor.process_single_movie(movie_folder)
