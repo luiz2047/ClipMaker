@@ -81,7 +81,3 @@ Contributions are most welcome! If you'd like to contribute to the project, feel
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-Feel free to modify the ReadMe further to add more sections or adjust the content to better fit your project's specifics. Make sure to include any relevant badges, links, or visuals to enhance the overall appearance of your ReadMe. Good luck with your project!
