@@ -3,6 +3,8 @@ import json
 import os
 from pathlib import Path
 from moviepy.video.fx.all import crop
+from moviepy.video.io.VideoFileClip import VideoFileClip
+
 from output_parser import parse_file
 from moviepy import editor
 
@@ -15,6 +17,8 @@ class VideoProcessor:
         self.transcribe_data = []
         self.parsed_data = []
         self.results_dir = None
+        self.movie_duration = None
+        self.metadata = None
 
     def load_parsed_data(self, output_file):
         with open(output_file, encoding="UTF-8") as f:
@@ -23,6 +27,10 @@ class VideoProcessor:
     def load_transcribe_data(self, transcribe_file):
         with open(transcribe_file) as f:
             self.transcribe_data = json.load(f)["segments"]
+
+    def load_video_metadata(self, metadata_file):
+        with open(metadata_file) as f:
+            self.metadata = json.load(f)
 
     @staticmethod
     def separate_text(text, max_line_length=30):
@@ -62,17 +70,15 @@ class VideoProcessor:
         subs = []
         start_moment_timestamp = self.time_to_seconds(moment_data["start_timestamp"])
         end_moment_timestamp = self.time_to_seconds(moment_data["end_timestamp"]) + 10
-
+        end_moment_timestamp = min(self.movie_duration, end_moment_timestamp)
         if (end_moment_timestamp - start_moment_timestamp) > 30:
+
             filtered_segments = self.filter_json_by_time(self.transcribe_data, start_moment_timestamp,
                                                          end_moment_timestamp)
             prev_end = start_moment_timestamp
             for segment in filtered_segments:
-                segment_start = float(segment["start"])
-                segment_end = float(segment["end"])
-
-                # Adjust the start time if it exceeds the video duration
-                segment_start = max(segment_start, prev_end)
+                segment_start = int(segment["start"])
+                segment_end = int(segment["end"])
 
                 if segment_start > prev_end:
                     subs.append(((prev_end, segment_start), None))  # Add an empty subtitle to cover the gap
@@ -112,24 +118,29 @@ class VideoProcessor:
 
         self.load_parsed_data(folder_path / "output.txt")
         self.load_transcribe_data(folder_path / "transcribe.json")
-
+        self.load_video_metadata(folder_path / "metadata.json")
         video_file = self.find_video_file(folder_path)
         self.movie_name = video_file
-
+        # print(self.parsed_data)
         i = 1
         for data in self.parsed_data:
             out_movie_name = Path(f"part_{i}")
+            video = editor.VideoFileClip(video_file)
+            self.movie_duration = video.duration
             subs = self.create_subs_for_moment(data)
             if not subs:
                 continue
-            video = editor.VideoFileClip(video_file)
             (w, h) = video.size
             cropped_clip = crop(video, width=600, height=5000, x_center=w / 2, y_center=h / 2)
+            # print(subs)
             annotated_clips = [self.annotate(cropped_clip.subclip(from_t, to_t), txt) for (from_t, to_t), txt in subs]
             final_clip = editor.concatenate_videoclips(annotated_clips)
-            final_clip.write_videofile(self.results_dir / (str(out_movie_name) + ".mp4"), codec='mpeg4')
-            with open(self.results_dir / (str(out_movie_name) + ".txt"), "w", encoding="utf-8") as f:
-                text = "{}{}\n{}".format(data["title"], f"Part {i}", "\n".join(data["hashtags"]))
+            final_clip.write_videofile(str(self.results_dir / out_movie_name) + ".mp4", codec='mpeg4')
+            with open(str(self.results_dir / out_movie_name) + ".txt", "w", encoding="utf-8") as f:
+                text = "{} {}\n{}\n{}".format(self.metadata["title"],
+                                            f"Part {i}",
+                                            data["title"],
+                                            "\n".join(data["hashtags"]))
                 f.write(text)
             i += 1
 
@@ -143,6 +154,6 @@ class VideoProcessor:
 
 
 if __name__ == "__main__":
-    movie_folder = Path("data/9rIy0xY99a0/")
+    movie_folder = Path("data/ACUuFg9Y9dY/")
     video_processor = VideoProcessor(movie_folder)
     video_processor.process_single_movie(movie_folder)
