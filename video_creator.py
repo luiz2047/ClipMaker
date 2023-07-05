@@ -97,7 +97,7 @@ class VideoProcessor:
         if txt is None or txt == '':
             return clip
         else:
-            txt = self.separate_text(txt, max_line_length=25)
+            txt = self.separate_text(txt, max_line_length=37)
             txtclip = editor.TextClip(txt, fontsize=fontsize, stroke_color=stroke_color, stroke_width=stroke_width,
                                       font=font, color=txt_color)
             cvc = editor.CompositeVideoClip([clip, txtclip.set_pos(('center', 0.75), relative=True)])
@@ -131,16 +131,16 @@ class VideoProcessor:
             if not subs:
                 continue
             (w, h) = video.size
-            cropped_clip = crop(video, width=600, height=5000, x_center=w / 2, y_center=h / 2)
+            cropped_clip = crop(video, width=850, height=5000, x_center=w / 2, y_center=h / 2)
             # print(subs)
             annotated_clips = [self.annotate(cropped_clip.subclip(from_t, to_t), txt) for (from_t, to_t), txt in subs]
             final_clip = editor.concatenate_videoclips(annotated_clips)
-            final_clip.write_videofile(str(self.results_dir / out_movie_name) + ".mp4", codec='mpeg4')
+            final_clip.write_videofile(str(self.results_dir / out_movie_name) + ".mp4", codec='libx264')
             with open(str(self.results_dir / out_movie_name) + ".txt", "w", encoding="utf-8") as f:
                 text = "{} {}\n{}\n{}".format(self.metadata["title"],
-                                            f"Part {i}",
-                                            data["title"],
-                                            "\n".join(data["hashtags"]))
+                                              f"Part {i}",
+                                              data["title"],
+                                              "\n".join(data["hashtags"]))
                 f.write(text)
             i += 1
 
@@ -154,6 +154,6 @@ class VideoProcessor:
 
 
 if __name__ == "__main__":
-    movie_folder = Path("data/ACUuFg9Y9dY/")
+    movie_folder = Path("data/AgbeGFYluEA/")
     video_processor = VideoProcessor(movie_folder)
     video_processor.process_single_movie(movie_folder)

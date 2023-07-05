@@ -35,7 +35,7 @@ def parse_file(file_content):
             'end_timestamp': end_timestamp
         })
 
-    return parsed_data
+    return adjust_moments_timestamps(parsed_data)
 
 
 def convert_timestamp_to_seconds(timestamp):
