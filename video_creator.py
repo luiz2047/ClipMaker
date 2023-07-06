@@ -121,7 +121,7 @@ class VideoProcessor:
         self.load_video_metadata(folder_path / "metadata.json")
         video_file = self.find_video_file(folder_path)
         self.movie_name = video_file
-        # print(self.parsed_data)
+        print(self.parsed_data)
         i = 1
         for data in self.parsed_data:
             out_movie_name = Path(f"part_{i}")
